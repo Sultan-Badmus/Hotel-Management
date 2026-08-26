@@ -1,0 +1,18 @@
+asgiref==3.11.1
+Django==5.2.14
+django-extensions==4.1
+djangorestframework==3.15.2
+pillow==10.4.0
+sqlparse==0.5.5
+tzdata==2024.2
+django-silk
+djangorestframework-simplejwt
+drf-spectacular
+django-filter
+isort
+redis[hiredis]
+django-redis
+Celery
+django-environ
+# djoser
+# django-cors-headers
