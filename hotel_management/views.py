@@ -16,7 +16,6 @@ from .models import (
     OrderItem,
     Product,
 )
-from .pagination import DefaultPageNumberPagination
 from .permissions import IsAdminOrReadOnly
 from .serializers import (
     AccomodationBuildingSerializer,
@@ -44,7 +43,6 @@ class CityViewSet(viewsets.ModelViewSet):
     search_fields = ["city_name", "country"]
     ordering_fields = ["city_name", "country", "id"]
     ordering = ["id"]
-    pagination_class = DefaultPageNumberPagination
     permission_classes = [IsAdminOrReadOnly]
 
     @method_decorator(cache_page(CITY_CACHE_TTL, key_prefix=CITY_CACHE_KEY_PREFIX))
@@ -71,7 +69,6 @@ class AccomodationBuildingViewSet(viewsets.ModelViewSet):
     search_fields = ["building_name", "building_location"]
     ordering_fields = ["building_name", "id"]
     ordering = ["id"]
-    pagination_class = DefaultPageNumberPagination
     permission_classes = [IsAdminOrReadOnly]
 
     @method_decorator(
@@ -93,22 +90,29 @@ class AccomodationBuildingViewSet(viewsets.ModelViewSet):
 
 
 class RoomViewSet(viewsets.ModelViewSet):
-    queryset = Room.objects.select_related("building").all()
+    queryset = Room.objects.select_related("building").order_by("id")
     serializer_class = RoomSerializer
-    filter_backends = [DjangoFilterBackend]
     filterset_fields = ["building", "capacity"]
+    search_fields = ["room_number"]
+    ordering_fields = ["room_number", "capacity", "price_per_night", "space_left", "id"]
+    ordering = ["id"]
+    permission_classes = [IsAdminOrReadOnly]
 
 
 class ReservationViewSet(viewsets.ModelViewSet):
     queryset = Reservation.objects.select_related("room").all()
-    serializer_class = ReservationSerializer
     filter_backends = [DjangoFilterBackend]
+    serializer_class = ReservationSerializer
     filterset_fields = ["status", "room", "is_employee"]
 
 
 class ProductViewSet(viewsets.ModelViewSet):
-    queryset = Product.objects.all()
+    queryset = Product.objects.order_by("id")
     serializer_class = ProductSerializer
+    search_fields = ["name", "description"]
+    ordering_fields = ["name", "price", "stock", "id"]
+    ordering = ["id"]
+    permission_classes = [IsAdminOrReadOnly]
 
 
 class ProductInfoAPIView(APIView):
