@@ -14,5 +14,6 @@ router.register("order-items", views.OrderItemViewSet, basename="orderitem")
 
 urlpatterns = [
     path("products/info/", views.ProductInfoAPIView.as_view()),
+    path("auth/", include("djoser.urls")),
     path("", include(router.urls)),
 ]

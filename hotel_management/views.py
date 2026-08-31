@@ -2,7 +2,9 @@ from django.db.models import Max
 from django.utils.decorators import method_decorator
 from django.views.decorators.cache import cache_page
 from django.views.decorators.vary import vary_on_headers
-from rest_framework import viewsets
+from rest_framework import status, viewsets
+from rest_framework.decorators import action
+from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
 from rest_framework.views import APIView
 from django_filters.rest_framework import DjangoFilterBackend
@@ -104,6 +106,29 @@ class ReservationViewSet(viewsets.ModelViewSet):
     filter_backends = [DjangoFilterBackend]
     serializer_class = ReservationSerializer
     filterset_fields = ["status", "room", "is_employee"]
+    permission_classes = [IsAuthenticated]
+
+    @action(detail=True, methods=["post"], url_path="set-status")
+    def set_status(self, request, pk=None):
+        """Check a reservation in or out, stamping check_in_date/check_out_date."""
+        reservation = self.get_object()
+        new_status = request.data.get("status")
+        allowed = {
+            Reservation.StatusChoices.CHECKED_IN,
+            Reservation.StatusChoices.CHECKED_OUT,
+        }
+
+        if new_status not in allowed:
+            return Response(
+                {"status": f"Must be one of {sorted(s.value for s in allowed)}."},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        reservation.status = new_status
+        reservation.save()
+
+        serializer = self.get_serializer(reservation)
+        return Response(serializer.data)
 
 
 class ProductViewSet(viewsets.ModelViewSet):

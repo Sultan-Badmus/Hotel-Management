@@ -1,14 +1,34 @@
+from djoser.serializers import UserCreatePasswordRetypeSerializer, UserSerializer as BaseUserSerializer
 from rest_framework import serializers
 from .models import (
     AccomodationBuilding,
     City,
     Room,
     Reservation,
-    User,
     Order,
     Product,
     OrderItem,
 )
+
+
+class UserCreateSerializer(UserCreatePasswordRetypeSerializer):
+    """Registration serializer: adds first_name/last_name to Djoser's default fields.
+
+    Activation gating (is_active=False until confirmed) and locking new users
+    out of is_staff/is_superuser are both handled by Djoser itself, driven by
+    SEND_ACTIVATION_EMAIL and User.objects.create_user() respectively.
+    """
+
+    class Meta(UserCreatePasswordRetypeSerializer.Meta):
+        fields = UserCreatePasswordRetypeSerializer.Meta.fields + (
+            "first_name",
+            "last_name",
+        )
+
+
+class UserSerializer(BaseUserSerializer):
+    class Meta(BaseUserSerializer.Meta):
+        fields = BaseUserSerializer.Meta.fields + ("first_name", "last_name")
 
 
 class AccomodationBuildingSerializer(serializers.ModelSerializer):
@@ -51,6 +71,8 @@ class RoomSerializer(serializers.ModelSerializer):
 
 
 class ReservationSerializer(serializers.ModelSerializer):
+    status_display = serializers.CharField(source="get_status_display", read_only=True)
+
     class Meta:
         model = Reservation
         fields = "__all__"

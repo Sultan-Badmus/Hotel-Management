@@ -14,5 +14,5 @@ redis[hiredis]
 django-redis
 Celery
 django-environ
-# djoser
+djoser
 # django-cors-headers

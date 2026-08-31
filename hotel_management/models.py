@@ -98,6 +98,7 @@ class Reservation(models.Model):
 
     room = models.ForeignKey(Room, on_delete=models.CASCADE)
     guest_name = models.CharField(max_length=100)
+    guest_email = models.EmailField()
     is_employee = models.BooleanField(default=False)
     check_in_date = models.DateTimeField(null=True, blank=True)
     check_out_date = models.DateTimeField(null=True, blank=True)

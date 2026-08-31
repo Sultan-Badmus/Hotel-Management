@@ -13,6 +13,7 @@ https://docs.djangoproject.com/en/5.2/ref/settings/
 from pathlib import Path
 
 import environ
+from datetime import timedelta
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
@@ -48,6 +49,7 @@ INSTALLED_APPS = [
     "silk",
     "drf_spectacular",
     "django_filters",
+    "djoser",
 ]
 
 MIDDLEWARE = [
@@ -157,6 +159,31 @@ REST_FRAMEWORK = {
     },
 }
 
+SIMPLE_JWT = {
+    "ACCESS_TOKEN_LIFETIME": timedelta(minutes=30),
+    "REFRESH_TOKEN_LIFETIME": timedelta(days=1),
+}
+
+DJOSER = {
+    "USER_CREATE_PASSWORD_RETYPE": True,
+    "PASSWORD_RESET_CONFIRM_RETYPE": True,
+    "SEND_ACTIVATION_EMAIL": True,
+    "ACTIVATION_URL": "activate/{uid}/{token}",
+    "PASSWORD_RESET_CONFIRM_URL": "password/reset/confirm/{uid}/{token}",
+    # These build the link inside activation/reset emails. They default to a
+    # local dev frontend for now and should point at the real frontend once
+    # it exists (env-overridable, same pattern as the rest of this file).
+    "EMAIL_FRONTEND_DOMAIN": env("FRONTEND_DOMAIN", default="localhost:3000"),
+    "EMAIL_FRONTEND_PROTOCOL": env("FRONTEND_PROTOCOL", default="http"),
+    "EMAIL_FRONTEND_SITE_NAME": env(
+        "FRONTEND_SITE_NAME", default="Hotel Management"
+    ),
+    "SERIALIZERS": {
+        "user_create_password_retype": "hotel_management.serializers.UserCreateSerializer",
+        "user": "hotel_management.serializers.UserSerializer",
+        "current_user": "hotel_management.serializers.UserSerializer",
+    },
+}
 SPECTACULAR_SETTINGS = {
     "TITLE": "Django Project API",
     "DESCRIPTION": "Django project description",
@@ -188,3 +215,4 @@ EMAIL_PORT = env.int("EMAIL_PORT", default=587)
 EMAIL_USE_TLS = env.bool("EMAIL_USE_TLS", default=True)
 EMAIL_HOST_USER = env("EMAIL_HOST_USER", default="")
 EMAIL_HOST_PASSWORD = env("EMAIL_HOST_PASSWORD", default="")
+DEFAULT_FROM_EMAIL = env("DEFAULT_FROM_EMAIL", default="webmaster@localhost")
