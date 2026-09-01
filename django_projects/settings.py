@@ -13,6 +13,7 @@ https://docs.djangoproject.com/en/5.2/ref/settings/
 from pathlib import Path
 
 import environ
+from celery.schedules import crontab
 from datetime import timedelta
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
@@ -206,6 +207,12 @@ CACHES = {
 
 CELERY_BROKER_URL = REDIS_URL
 CELERY_RESULT_BACKEND = REDIS_URL
+CELERY_BEAT_SCHEDULE = {
+    "send-activation-reminders-daily": {
+        "task": "hotel_management.tasks.send_activation_reminders",
+        "schedule": crontab(hour=9, minute=0),
+    },
+}
 
 EMAIL_BACKEND = env(
     "EMAIL_BACKEND", default="django.core.mail.backends.console.EmailBackend"
