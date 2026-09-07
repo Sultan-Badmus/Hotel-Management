@@ -129,25 +129,68 @@ class OrderItemSerializers(serializers.ModelSerializer):
         fields = ("product_name", "product_price", "quantity", "item_subtotal")
 
 
+class OrderItemWriteSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = OrderItem
+        fields = ("product", "quantity")
+
+
 class OrderSerializer(serializers.ModelSerializer):
     items = OrderItemSerializers(many=True, read_only=True)
+    order_items = OrderItemWriteSerializer(many=True, write_only=True, allow_empty=False)
     total_price = serializers.SerializerMethodField(method_name="total")
+    guest_name = serializers.CharField(required=False, allow_blank=True)
 
     def total(self, obj):  # we can also use get_total_price here
         # we are using items here because items has been set as a related field in the Model
         order_items = obj.items.all()
         return sum(order_item.item_subtotal for order_item in order_items)
 
+    def validate(self, attrs):
+        request = self.context.get("request")
+        if request and not request.user.is_staff:
+            # Never trust a client-supplied user id for non-staff requests.
+            attrs["user"] = request.user
+
+        user = attrs.get("user", getattr(self.instance, "user", None))
+        guest_name = attrs.get("guest_name", getattr(self.instance, "guest_name", None))
+        if not user and not guest_name:
+            raise serializers.ValidationError(
+                {"guest_name": "This field is required when no user is given."}
+            )
+        return attrs
+
+    def create(self, validated_data):
+        items_data = validated_data.pop("order_items", [])
+        order = super().create(validated_data)
+        for item in items_data:
+            OrderItem.objects.create(order=order, **item)
+        return order
+
+    def update(self, instance, validated_data):
+        items_data = validated_data.pop("order_items", None)
+        order = super().update(instance, validated_data)
+        if items_data is not None:
+            order.items.all().delete()
+            for item in items_data:
+                OrderItem.objects.create(order=order, **item)
+        return order
+
     class Meta:
         model = Order
         fields = (
             "order_id",
             "reservation",
+            "room",
+            "user",
+            "guest_name",
             "created_at",
             "status",
             "items",
+            "order_items",
             "total_price",
         )
+        read_only_fields = ("order_id",)
 
 
 class ProductInfoSerializers(serializers.Serializer):

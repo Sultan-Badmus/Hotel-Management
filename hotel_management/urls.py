@@ -9,7 +9,6 @@ router.register("rooms", views.RoomViewSet, basename="room")
 router.register("reservations", views.ReservationViewSet, basename="reservation")
 router.register("products", views.ProductViewSet, basename="product")
 router.register("orders", views.OrderViewSet, basename="order")
-router.register("order-items", views.OrderItemViewSet, basename="orderitem")
 
 
 urlpatterns = [

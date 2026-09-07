@@ -15,7 +15,6 @@ from .models import (
     Room,
     Reservation,
     Order,
-    OrderItem,
     Product,
 )
 from .permissions import IsAdminOrReadOnly
@@ -25,7 +24,6 @@ from .serializers import (
     RoomSerializer,
     ReservationSerializer,
     OrderSerializer,
-    OrderItemSerializers,
     ProductSerializer,
     ProductInfoSerializers,
 )
@@ -156,23 +154,22 @@ class ProductInfoAPIView(APIView):
         return Response(serializer.data)
 
 
-# ---- Order & OrderItem: read-only ViewSets ----
-# OrderSerializer/OrderItemSerializers are display-oriented (nested, computed
-# fields) rather than write-oriented, so these are exposed read-only. Orders
-# and their items are created/mutated through the Reservation flow.
+# ---- Order (items are created/replaced via the nested order_items field) ----
 
 
-class OrderViewSet(viewsets.ReadOnlyModelViewSet):
-    queryset = Order.objects.select_related("reservation").prefetch_related(
-        "items__product"
-    )
+class OrderViewSet(viewsets.ModelViewSet):
+    queryset = Order.objects.select_related(
+        "reservation", "room", "user"
+    ).prefetch_related("items__product").order_by("-created_at")
+
     serializer_class = OrderSerializer
+    permission_classes = [IsAuthenticated]
     filter_backends = [DjangoFilterBackend]
-    filterset_fields = ["status", "reservation"]
+    filterset_fields = ["status", "reservation", "user"]
 
-
-class OrderItemViewSet(viewsets.ReadOnlyModelViewSet):
-    queryset = OrderItem.objects.select_related("order", "product")
-    serializer_class = OrderItemSerializers
-    filter_backends = [DjangoFilterBackend]
-    filterset_fields = ["order", "product"]
+    def get_queryset(self):
+        queryset = super().get_queryset()
+        user = self.request.user
+        if user.is_staff:
+            return queryset
+        return queryset.filter(user=user)

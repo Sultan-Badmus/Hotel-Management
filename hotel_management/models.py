@@ -161,9 +161,26 @@ class Order(models.Model):
 
     order_id = models.UUIDField(primary_key=True, default=uuid.uuid4)
     reservation = models.ForeignKey(
-        Reservation, on_delete=models.CASCADE, related_name="orders"
+        Reservation,
+        on_delete=models.CASCADE,
+        related_name="orders",
+        null=True,
+        blank=True,
     )
-    room = models.ForeignKey(Room, on_delete=models.CASCADE, related_name="orders")
+    room = models.ForeignKey(
+        Room,
+        on_delete=models.CASCADE,
+        related_name="orders",
+        null=True,
+        blank=True,
+    )
+    user = models.ForeignKey(
+        User,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="orders",
+    )
     guest_name = models.CharField(max_length=100)
     created_at = models.DateTimeField(auto_now_add=True)
     status = models.CharField(
@@ -173,8 +190,13 @@ class Order(models.Model):
         Product, through="OrderItem", related_name="orders"
     )
 
+    def save(self, *args, **kwargs):
+        if self.user:
+            self.guest_name = self.user.username
+        super().save(*args, **kwargs)
+
     def __str__(self):
-        return f"Order {self.order_id} by {self.user.username}"
+        return f"Order {self.order_id} by {self.guest_name}"
 
 
 class OrderItem(models.Model):
