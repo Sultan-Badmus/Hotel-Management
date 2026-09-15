@@ -16,7 +16,7 @@ A Django REST Framework API for managing hotel bookings — cities, buildings, r
 
 ## Tech stack
 
-Django 5.2 · Django REST Framework · Djoser · SimpleJWT · django-filter · drf-spectacular · Celery · Redis (cache broker + result backend) · django-environ · SQLite (default; swappable via `DATABASE_URL`)
+Django 5.2 · Django REST Framework · Djoser · SimpleJWT · django-filter · drf-spectacular · Celery · Redis (cache broker + result backend) · django-environ · PostgreSQL (default for local dev, run via Docker; swappable via `DATABASE_URL` — SQLite also works for quick throwaway testing)
 
 ## Setup
 
@@ -34,15 +34,29 @@ Requires Python 3.10+ and a running Redis server.
 
 2. **Redis** — needed for caching, throttling, and Celery. Install and run it locally (e.g. `brew install redis && brew services start redis` on macOS), or point `REDIS_URL` at an existing instance.
 
-3. **Configure environment variables**
+3. **Postgres** — needed for the database. Start it with:
+
+   ```bash
+   docker run --name hotel-postgres \
+     -e POSTGRES_USER=hotel_admin \
+     -e POSTGRES_PASSWORD=hotel_dev_pw \
+     -e POSTGRES_DB=hotel_management \
+     -p 5432:5432 \
+     -v hotel_postgres_data:/var/lib/postgresql/data \
+     -d postgres:16-alpine
+   ```
+
+   (Subsequent runs: `docker start hotel-postgres`.) Alternatively, point `DATABASE_URL` at any existing Postgres instance, or leave it unset to fall back to a local SQLite file.
+
+4. **Configure environment variables**
 
    ```bash
    cp .env.example .env
    ```
 
-   Then fill in `.env` — see the [Environment variables](#environment-variables) table below. At minimum, set `SECRET_KEY` to something random.
+   Then fill in `.env` — see the [Environment variables](#environment-variables) table below. At minimum, set `SECRET_KEY` to something random, and `DATABASE_URL` to match the Postgres credentials above.
 
-4. **Migrate and run**
+5. **Migrate and run**
 
    ```bash
    python manage.py migrate
@@ -52,7 +66,7 @@ Requires Python 3.10+ and a running Redis server.
 
    The API is now at `http://localhost:8000/`.
 
-5. **Celery worker + beat** (only needed for the daily activation-reminder email; skip if you don't need it running)
+6. **Celery worker + beat** (only needed for the daily activation-reminder email; skip if you don't need it running)
 
    ```bash
    celery -A django_projects worker -B -l info
@@ -86,7 +100,7 @@ All read from `.env` via `django-environ` — see `.env.example` for the full te
 | `SECRET_KEY` | Django secret key | *(required, no default)* |
 | `DEBUG` | Debug mode | `False` |
 | `ALLOWED_HOSTS` | Comma-separated allowed hosts | `[]` |
-| `DATABASE_URL` | Database connection string | `sqlite:///db.sqlite3` |
+| `DATABASE_URL` | Database connection string | `sqlite:///db.sqlite3` (falls back if unset — see the Postgres step in Setup above for the recommended local-dev container) |
 | `REDIS_URL` | Redis URL — cache, throttling, Celery broker/backend | `redis://127.0.0.1:6379/1` |
 | `EMAIL_BACKEND` | Django email backend | console backend |
 | `EMAIL_HOST`, `EMAIL_PORT`, `EMAIL_USE_TLS`, `EMAIL_HOST_USER`, `EMAIL_HOST_PASSWORD` | SMTP settings (e.g. Gmail — see comment in `.env.example`) | unset |

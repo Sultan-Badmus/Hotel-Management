@@ -12,7 +12,8 @@ django-filter
 isort
 redis[hiredis]
 django-redis
-Celery
+Celery==5.4.0
 django-environ
 djoser
+psycopg2-binary
 # django-cors-headers
