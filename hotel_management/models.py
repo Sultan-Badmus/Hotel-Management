@@ -1,4 +1,4 @@
-from django.db import models
+from django.db import models, transaction
 import uuid
 from django.core.validators import MinValueValidator, MaxValueValidator
 from django.core.exceptions import ValidationError
@@ -112,29 +112,42 @@ class Reservation(models.Model):
         return f"Reservation for {self.guest_name} in Room {self.room.room_number}"
 
     def save(self, *args, **kwargs):
-        # check if the room has enough space for the reservation
-        if self._state.adding:
-            if self.room.space_left <= 0:
-                raise ValidationError(
-                    f"Room {self.room.room_number} in {self.room.building.building_name} is fully booked."
+        is_new = self._state.adding
+        needs_room_lock = is_new or self.status in (
+            self.StatusChoices.CHECKED_OUT,
+            self.StatusChoices.CANCELLED,
+        )
+
+        with transaction.atomic():
+            if needs_room_lock:
+                # Lock the room row so concurrent reservations against it can't
+                # both read the same stale space_taken and both succeed.
+                room = Room.objects.select_related("building").select_for_update().get(
+                    pk=self.room_id
                 )
+                self.room = room
 
-            self.room.space_taken += 1
-            self.room.save()
+            if is_new:
+                if room.space_left <= 0:
+                    raise ValidationError(
+                        f"Room {room.room_number} in {room.building.building_name} is fully booked."
+                    )
+                room.space_taken += 1
+                room.save()
 
-        if self.status == self.StatusChoices.CHECKED_IN:
-            self.check_in_date = timezone.now()
+            if self.status == self.StatusChoices.CHECKED_IN:
+                self.check_in_date = timezone.now()
 
-        elif self.status == self.StatusChoices.CHECKED_OUT:
-            self.check_out_date = timezone.now()
-            self.room.space_taken -= 1
-            self.room.save()
+            elif self.status == self.StatusChoices.CHECKED_OUT:
+                self.check_out_date = timezone.now()
+                room.space_taken -= 1
+                room.save()
 
-        elif self.status == self.StatusChoices.CANCELLED:
-            self.room.space_taken -= 1
-            self.room.save()
+            elif self.status == self.StatusChoices.CANCELLED:
+                room.space_taken -= 1
+                room.save()
 
-        super().save(*args, **kwargs)
+            super().save(*args, **kwargs)
 
 
 class Product(models.Model):
