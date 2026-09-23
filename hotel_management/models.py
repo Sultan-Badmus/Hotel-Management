@@ -15,7 +15,15 @@ class User(AbstractUser):
     pass
 
 
-class AccomodationBuilding(models.Model):
+class TimeStampedModel(models.Model):
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        abstract = True
+
+
+class AccomodationBuilding(TimeStampedModel):
     building_name = models.CharField(max_length=100)
     city = models.ForeignKey("City", on_delete=models.CASCADE)
     building_location = models.CharField(max_length=100)
@@ -53,7 +61,7 @@ class AccomodationBuilding(models.Model):
             )
 
 
-class City(models.Model):
+class City(TimeStampedModel):
     city_name = models.CharField(max_length=100)
     country = models.CharField(max_length=100)
     active = models.BooleanField(default=True)
@@ -73,7 +81,7 @@ class City(models.Model):
             )
 
 
-class Room(models.Model):
+class Room(TimeStampedModel):
     room_number = models.CharField(max_length=10)
     building = models.ForeignKey(AccomodationBuilding, on_delete=models.CASCADE)
     capacity = models.PositiveIntegerField()
@@ -89,7 +97,7 @@ class Room(models.Model):
         super().save(*args, **kwargs)
 
 
-class Reservation(models.Model):
+class Reservation(TimeStampedModel):
     class StatusChoices(models.TextChoices):
         RESERVED = "RS", "Reserved"
         CHECKED_IN = "CI", "Checked In"
@@ -150,7 +158,7 @@ class Reservation(models.Model):
             super().save(*args, **kwargs)
 
 
-class Product(models.Model):
+class Product(TimeStampedModel):
     name = models.CharField(max_length=200)
     description = models.TextField()
     price = models.DecimalField(max_digits=10, decimal_places=2)
@@ -166,7 +174,7 @@ class Product(models.Model):
         return self.name
 
 
-class Order(models.Model):
+class Order(TimeStampedModel):
     class StatusChoices(models.TextChoices):
         PENDING = "pending"
         CONFIRMED = "confirmed"
@@ -195,7 +203,6 @@ class Order(models.Model):
         related_name="orders",
     )
     guest_name = models.CharField(max_length=100)
-    created_at = models.DateTimeField(auto_now_add=True)
     status = models.CharField(
         max_length=10, choices=StatusChoices.choices, default=StatusChoices.PENDING
     )
@@ -212,7 +219,7 @@ class Order(models.Model):
         return f"Order {self.order_id} by {self.guest_name}"
 
 
-class OrderItem(models.Model):
+class OrderItem(TimeStampedModel):
     order = models.ForeignKey(Order, on_delete=models.CASCADE, related_name="items")
     product = models.ForeignKey(Product, on_delete=models.CASCADE)
     quantity = models.PositiveIntegerField()
